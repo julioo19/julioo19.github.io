@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+
+@import "tailwindcss";
+
+@theme {
+    --color-dark: #0D0B1E;
+    --color-accent: #8B7EF8;
+    --color-accent-light: rgba(139, 126, 248, 0.15);
+
+    --font-pixel: 'Press Start 2P', monospace;
+    --font-mono: 'JetBrains Mono', monospace;
+    --animate-marquee: marquee 20s linear infinite;
+
+    @keyframes marquee {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+}
+
+
+@layer base {
+    body {
+        @apply bg-dark text-white;
+        font-family: var(--font-mono);
+    }
+}
