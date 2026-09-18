@@ -2,6 +2,7 @@ const projects = [
   { name: 'AI Tourism Agent' },
   { name: 'Food Delivery App' },
   { name: 'Machinery Accreditation System' },
+  { name: 'Agricultural Temperature Prediction with ML' },
 ];
 
 const Projects = () => {
