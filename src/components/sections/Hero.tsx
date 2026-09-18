@@ -1,6 +1,4 @@
-//import portraitImg from '../../assets/images/6qgycns9zfbb1.jpg';
 import Button from '../ui/Button';
-//mport PixelDust from '../ui/PixelDust';
 import Marquee from './Marquee';
 
 function Hero() {
@@ -8,8 +6,10 @@ function Hero() {
     <section className="relative flex flex-col items-center justify-center px-6 pt-16 pb-24 text-center md:min-h-screen md:px-0">
       
       {/* Headline */}
-      <h1 className="font-pixel text-3xl leading-tight text-accent sm:text-4xl md:text-6xl lg:text-7xl">
-        JULIO CESAR MONTALVAN
+      <h1 className="font-pixel text-3xl leading-tight text-white sm:text-4xl md:text-6xl lg:text-7xl">
+        JULIO CESAR
+        <br/>
+        MONTALVAN 
       </h1>
 
       {/* CTA */}
