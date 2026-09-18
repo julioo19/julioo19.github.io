@@ -8,7 +8,7 @@ function Hero() {
     <section className="relative flex flex-col items-center justify-center px-6 pt-16 pb-24 text-center md:min-h-screen md:px-0">
       
       {/* Headline */}
-      <h1 className="font-pixel text-3xl leading-tight text-white sm:text-4xl md:text-6xl lg:text-7xl">
+      <h1 className="font-pixel text-3xl leading-tight text-accent sm:text-4xl md:text-6xl lg:text-7xl">
         JULIO CESAR MONTALVAN
       </h1>
 
