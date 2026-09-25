@@ -1,5 +1,5 @@
 # ---- Etapa 1: build del sitio con Vite ----
-FROM node:20-alpine AS build
+FROM node:22.23.3-alpine3.24 AS build
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ COPY . .
 RUN npm run build
 
 # ---- Etapa 2: nginx sirviendo el resultado ----
-FROM nginx:alpine
+FROM nginxinc/nginx-unprivileged:1.30.5-alpine3.24
 
 # Reemplaza la configuracion por defecto de nginx por la nuestra
 # (la que define el proxy hacia /api/).
