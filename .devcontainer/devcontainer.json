@@ -15,6 +15,7 @@
       "onAutoForward": "openPreview"
     }
   },
+  "postCreateCommand": "cp .env.example .env",
 
   "postStartCommand": "docker compose up -d"
 }
