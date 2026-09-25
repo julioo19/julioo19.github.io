@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
 
 interface ButtonProps {
-  href: string;
+  href?: string;
   children: ReactNode;
+  type?: string; 
 }
 
 const Button = ({ href, children }: ButtonProps) => {
