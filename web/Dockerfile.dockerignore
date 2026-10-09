@@ -1,8 +1,10 @@
 node_modules
 dist
+_site
 .git
 .github
 *.md
 .env
 api
 db
+EOF
