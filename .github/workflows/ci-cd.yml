@@ -1,0 +1,65 @@
+name: CI/CD
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # 2. Build: lint de todo + armado del sitio que se publica
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # --- Linters (uno por tipo de archivo) ---
+      - name: Lint de React/TypeScript (ESLint)
+        run: npm run lint
+
+      - name: Lint del HTML (HTMLHint)
+        run: npx htmlhint index.html
+
+      - name: Lint de los Dockerfiles (Hadolint)
+        run: |
+          status=0
+          for f in api/Dockerfile web/Dockerfile db/Dockerfile; do
+            echo "::group::$f"
+            docker run --rm -i hadolint/hadolint:v2.12.0 < "$f" || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+
+      - name: Lint de la API (gofmt + go vet)
+        working-directory: api
+        run: |
+          sin_formato=$(gofmt -l .)
+          if [ -n "$sin_formato" ]; then
+            echo "Archivos sin formato:"; echo "$sin_formato"; exit 1
+          fi
+          go vet ./...
+
+      # --- Armado del sitio ---
+      - name: Armar el sitio (_site/)
+        run: bash scripts/armar-sitio.sh
+
+      - name: Subir el sitio como artefacto de Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
