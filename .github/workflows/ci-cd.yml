@@ -18,7 +18,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Instalar dependencias
@@ -63,3 +63,33 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
+   # 3. Test: Vitest sobre el sitio que se publica
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # Mismo script que en build: se prueba exactamente lo que se publica
+      - name: Armar el sitio (_site/)
+        run: bash scripts/armar-sitio.sh
+
+      - name: Pruebas del sitio (Vitest)
+        run: npm test
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+
+      - name: Pruebas de la API (go test)
+        working-directory: api
+        run: go test ./...
