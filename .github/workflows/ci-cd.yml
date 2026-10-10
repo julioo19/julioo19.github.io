@@ -9,6 +9,8 @@ on:
 permissions:
   contents: read
 
+  
+
 jobs:
   # 2. Build: lint de todo + armado del sitio que se publica
   build:
@@ -93,3 +95,55 @@ jobs:
       - name: Pruebas de la API (go test)
         working-directory: api
         run: go test ./...
+  
+  # 4. Package: imágenes a GitHub Packages (ghcr.io)
+  package:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write          # necesario para subir a ghcr.io con GITHUB_TOKEN
+    strategy:
+      matrix:
+        include:
+          - imagen: perfil-web
+            contexto: .
+            dockerfile: web/Dockerfile
+          - imagen: perfil-api
+            contexto: ./api
+            dockerfile: api/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      # "sha-" + los 7 primeros caracteres del commit real.
+      # En un PR usa el commit de la rama, no el merge temporal de GitHub.
+      - name: Calcular el tag (SHA corto del commit)
+        run: echo "TAG=sha-${COMMIT:0:7}" >> "$GITHUB_ENV"
+        env:
+          COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Login en ghcr.io
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}   # sin tokens personales
+
+      # Arma el nombre en minúsculas y las etiquetas OCI, entre ellas
+      # org.opencontainers.image.source, que enlaza el paquete con tu repo.
+      - name: Metadatos de la imagen
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.imagen }}
+          tags: type=raw,value=${{ env.TAG }}
+          flavor: latest=false                    # nada de latest
+
+      - name: Construir y publicar
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.contexto }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
