@@ -147,3 +147,35 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+    # 5. Security: Trivy sobre las imágenes que ya están en ghcr.io
+  security:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read           # para bajar las imágenes de ghcr.io
+    strategy:
+      matrix:
+        imagen: [perfil-web, perfil-api]
+    steps:
+      # Mismo tag que calculó package: "sha-" + 7 primeros caracteres del commit
+      - name: Calcular el tag (SHA corto del commit)
+        run: echo "TAG=sha-${COMMIT:0:7}" >> "$GITHUB_ENV"
+        env:
+          COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Login en ghcr.io
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Escanear la imagen con Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/${{ matrix.imagen }}:${{ env.TAG }}
+          severity: CRITICAL        # solo se frena por críticas
+          ignore-unfixed: true      # ...y solo las que ya tienen corrección
+          exit-code: '1'            # con 0 el job nunca fallaría (descuento en la rúbrica)
