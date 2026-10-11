@@ -201,30 +201,46 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Descargar imagen de perfil-web
+      - name: Descargar imágenes
         env:
-          IMAGE: ghcr.io/${{ github.repository_owner }}/perfil-web:${{ env.TAG }}
-        run: docker pull "$IMAGE"
+          WEB_IMAGE: ghcr.io/${{ github.repository_owner }}/perfil-web:${{ env.TAG }}
+          API_IMAGE: ghcr.io/${{ github.repository_owner }}/perfil-api:${{ env.TAG }}
+        run: |
+          docker pull "$WEB_IMAGE"
+          docker pull "$API_IMAGE"
 
-      - name: Levantar contenedor y comprobar GET /
+      - name: Levantar contenedores y comprobar GET /
         env:
-          IMAGE: ghcr.io/${{ github.repository_owner }}/perfil-web:${{ env.TAG }}
+          WEB_IMAGE: ghcr.io/${{ github.repository_owner }}/perfil-web:${{ env.TAG }}
+          API_IMAGE: ghcr.io/${{ github.repository_owner }}/perfil-api:${{ env.TAG }}
         run: |
           set -eu
 
+          cleanup() {
+            docker rm -f perfil-web-smoke api >/dev/null 2>&1 || true
+            docker network rm smoke-net >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker network create smoke-net
+
+          docker run -d \
+            --name api \
+            --network smoke-net \
+            "$API_IMAGE"
+
           docker run -d \
             --name perfil-web-smoke \
-            -p 127.0.0.1:8080:80 \
-            "$IMAGE"
-
-          trap 'docker rm -f perfil-web-smoke >/dev/null 2>&1 || true' EXIT
+            --network smoke-net \
+            -p 127.0.0.1:8080:8080 \
+            "$WEB_IMAGE"
 
           status=""
           for i in $(seq 1 20); do
             status=$(curl -sS \
               -o /tmp/perfil-web.html \
               -w '%{http_code}' \
-              http://127.0.0.1:8080/ || true)
+              http://127.0.0.1:8080/ 2>/dev/null || true)
 
             if [ "$status" = "200" ]; then
               break
@@ -235,7 +251,10 @@ jobs:
 
           if [ "$status" != "200" ]; then
             echo "ERROR: GET / respondió con HTTP $status"
+            echo "--- Logs de Nginx ---"
             docker logs perfil-web-smoke
+            echo "--- Logs de la API ---"
+            docker logs api
             exit 1
           fi
 
