@@ -233,3 +233,26 @@ Para este lab, probablemente permitió que el tráfico de Docker pudiera atraves
 
 Después de ejecutar este comando, la comunicación con la API funcionó correctamente. Al utilizar otros Codespaces, este problema no volvió a presentarse y no fue necesario ejecutar nuevamente el comando.
 
+
+## Delivery o deployment
+
+El pipeline CI/CD de este proyecto automatiza la compilación, las pruebas, el análisis de seguridad y el despliegue del portfolio.
+
+Actualmente, el pipeline realiza las siguientes etapas:
+
+1. **Build y lint:** verifica el código y genera el sitio estático que se publicará.
+2. **Testing:** ejecuta las pruebas automatizadas para comprobar el correcto funcionamiento del sitio.
+3. **Packaging:** construye y publica las imágenes Docker en GitHub Container Registry (GHCR).
+4. **Security:** analiza las imágenes con Trivy para detectar vulnerabilidades críticas.
+5. **Smoke test:** verifica que el contenedor web responda con HTTP 200 y que el HTML contenga mi nombre.
+6. **Deploy a producción:** cuando los pasos anteriores finalizan correctamente y los cambios llegan a la rama `main`, el pipeline espera una aprobación manual antes de publicar el sitio en GitHub Pages.
+
+### ¿Qué cambiaría para pasar a Continuous Deployment?
+
+Para implementar Continuous Deployment, eliminaría la aprobación manual del entorno `github-pages`, manteniendo las pruebas automatizadas, el análisis de seguridad y el smoke test como condiciones obligatorias. De esta manera, cada cambio integrado en `main` que supere todas las validaciones se publicaría automáticamente en producción, sin intervención manual.
+
+### ¿En qué casos no implementaría Continuous Deployment?
+
+Mantendría la aprobación manual cuando los cambios tengan un impacto importante en producción, afecten datos sensibles, impliquen modificaciones de infraestructura o requieran una validación del negocio. También sería conveniente en sistemas críticos en los que un despliegue incorrecto pueda ocasionar pérdidas económicas, interrupciones del servicio o problemas de seguridad.
+
+En este proyecto, la aprobación manual funciona como una última barrera de control antes de publicar el portfolio.
