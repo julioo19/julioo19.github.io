@@ -179,3 +179,72 @@ jobs:
           severity: CRITICAL        # solo se frena por críticas
           ignore-unfixed: true      # ...y solo las que ya tienen corrección
           exit-code: '1'            # con 0 el job nunca fallaría (descuento en la rúbrica)
+
+  # 6. Smoke: comprobar el contenedor web publicado
+  smoke:
+    needs: security
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Calcular el tag (SHA corto del commit)
+        run: echo "TAG=sha-${COMMIT:0:7}" >> "$GITHUB_ENV"
+        env:
+          COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Login en ghcr.io
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Descargar imagen de perfil-web
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/perfil-web:${{ env.TAG }}
+        run: docker pull "$IMAGE"
+
+      - name: Levantar contenedor y comprobar GET /
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/perfil-web:${{ env.TAG }}
+        run: |
+          set -eu
+
+          docker run -d \
+            --name perfil-web-smoke \
+            -p 127.0.0.1:8080:80 \
+            "$IMAGE"
+
+          trap 'docker rm -f perfil-web-smoke >/dev/null 2>&1 || true' EXIT
+
+          status=""
+          for i in $(seq 1 20); do
+            status=$(curl -sS \
+              -o /tmp/perfil-web.html \
+              -w '%{http_code}' \
+              http://127.0.0.1:8080/ || true)
+
+            if [ "$status" = "200" ]; then
+              break
+            fi
+
+            sleep 1
+          done
+
+          if [ "$status" != "200" ]; then
+            echo "ERROR: GET / respondió con HTTP $status"
+            docker logs perfil-web-smoke
+            exit 1
+          fi
+
+          echo "OK: GET / respondió HTTP 200"
+
+          if ! grep -Fq 'Julio César' /tmp/perfil-web.html; then
+            echo "ERROR: el HTML no contiene el nombre esperado en el título"
+            cat /tmp/perfil-web.html
+            exit 1
+          fi
+
+          echo "OK: el HTML contiene el nombre en el título"
